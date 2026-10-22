@@ -77,9 +77,7 @@ const details = document.querySelector('.identity-details');
 const cue = document.querySelector('.scroll-cue');
 const intro = document.querySelector('.intro');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-let motionPreference;
-try { motionPreference = localStorage.getItem('portfolio-motion'); } catch {}
-let motionEnabled = motionPreference === 'on' || (motionPreference !== 'off' && !reducedMotion.matches);
+let motionEnabled = !reducedMotion.matches;
 let geometry;
 let scrollPosition = scrollY;
 let targetScroll = scrollY;
@@ -117,8 +115,9 @@ function measureName() {
 function renderMotion() {
   if (!geometry) return;
   // The name settles in the corner and stays there throughout the page.
-  // Reduced-motion visitors get an immediate position change instead of travel.
-  const progress = motionEnabled ? smoothstep(clamp(scrollPosition / geometry.duration)) : (scrollPosition > 0 ? 1 : 0);
+  // Keep this movement tied to scrolling, including in reduced-motion mode.
+  // Reduced motion removes the trailing animation, entrance, and ambient effects.
+  const progress = smoothstep(clamp(scrollPosition / geometry.duration));
   const x = geometry.x + (geometry.targetX - geometry.x) * progress;
   const y = geometry.y + (geometry.targetY - geometry.y) * progress;
   const scale = 1 + (geometry.scale - 1) * progress;
@@ -153,7 +152,7 @@ function applyMotionPreference() {
 }
 
 reducedMotion.addEventListener('change', () => {
-  if (motionPreference !== 'on' && motionPreference !== 'off') motionEnabled = !reducedMotion.matches;
+  motionEnabled = !reducedMotion.matches;
   applyMotionPreference();
   measureName();
 });
