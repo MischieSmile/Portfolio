@@ -75,14 +75,14 @@ const nameElement = document.querySelector('#name');
 const namePosition = document.querySelector('.name-position');
 const details = document.querySelector('.identity-details');
 const cue = document.querySelector('.scroll-cue');
-const intro = document.querySelector('.intro');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 let motionEnabled = !reducedMotion.matches;
 let geometry;
-let scrollPosition = scrollY;
-let targetScroll = scrollY;
+let docked = scrollY > 24;
+let nameProgress = docked ? 1 : 0;
 let frame = 0;
-let lastTime = 0;
+let transitionStart = null;
+let transitionFrom = nameProgress;
 
 const clamp = value => Math.min(1, Math.max(0, value));
 const smoothstep = value => value * value * (3 - 2 * value);
@@ -104,46 +104,45 @@ function measureName() {
     y: rect.top + scrollY,
     targetX: mobile ? 24 : Math.max(40, (innerWidth - 1180) / 2),
     targetY: mobile ? 28 : 36,
-    scale: (mobile ? 25 : 31) / fontSize,
-    duration: intro.offsetHeight * .68
+    scale: (mobile ? 25 : 31) / fontSize
   };
   nameElement.classList.add('floating');
-  scrollPosition = targetScroll = scrollY;
   renderMotion();
 }
 
 function renderMotion() {
   if (!geometry) return;
-  // The name settles in the corner and stays there throughout the page.
-  // Keep this movement tied to scrolling, including in reduced-motion mode.
-  // Reduced motion removes the trailing animation, entrance, and ambient effects.
-  const progress = smoothstep(clamp(scrollPosition / geometry.duration));
+  // Scrolling triggers a complete transition, rather than scrubbing its timeline.
+  const progress = nameProgress;
   const x = geometry.x + (geometry.targetX - geometry.x) * progress;
   const y = geometry.y + (geometry.targetY - geometry.y) * progress;
   const scale = 1 + (geometry.scale - 1) * progress;
   nameElement.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
   // Fade in a quiet background only once the name is close to its resting position.
   document.documentElement.style.setProperty('--name-dock', String(smoothstep(clamp((progress - .65) / .35))));
-  details.style.opacity = String(1 - smoothstep(clamp(scrollPosition / 150)));
-  details.style.transform = `translate3d(0, ${Math.min(scrollPosition * .75, 120)}px, 0)`;
-  cue.style.opacity = String(1 - clamp(scrollPosition / 130));
+  details.style.opacity = String(1 - smoothstep(clamp(progress * 2)));
+  details.style.transform = `translate3d(0, ${progress * 32}px, 0)`;
+  cue.style.opacity = String(1 - clamp(progress * 3));
 }
 
 function animate(time) {
-  const delta = lastTime ? Math.min(time - lastTime, 64) : 16;
-  lastTime = time;
-  // Time-based damping gives wheel, trackpad, and touch the same soft finish.
-  scrollPosition += (targetScroll - scrollPosition) * (1 - Math.exp(-delta / 85));
-  if (Math.abs(targetScroll - scrollPosition) < .08) scrollPosition = targetScroll;
+  if (transitionStart === null) transitionStart = time;
+  const elapsed = clamp((time - transitionStart) / (motionEnabled ? 650 : 220));
+  const eased = 1 - Math.pow(1 - elapsed, 3);
+  nameProgress = transitionFrom + ((docked ? 1 : 0) - transitionFrom) * eased;
   renderMotion();
-  if (scrollPosition !== targetScroll) frame = requestAnimationFrame(animate);
-  else { frame = 0; lastTime = 0; }
+  if (elapsed < 1) frame = requestAnimationFrame(animate);
+  else { frame = 0; transitionStart = null; }
 }
 
 window.addEventListener('scroll', () => {
-  targetScroll = scrollY;
-  if (!motionEnabled) { scrollPosition = targetScroll; renderMotion(); }
-  else if (!frame) frame = requestAnimationFrame(animate);
+  // Different thresholds avoid toggling back and forth near the top.
+  const nextDocked = docked ? scrollY > 8 : scrollY > 24;
+  if (nextDocked === docked) return;
+  docked = nextDocked;
+  transitionFrom = nameProgress;
+  transitionStart = null;
+  if (!frame) frame = requestAnimationFrame(animate);
 }, { passive: true });
 window.addEventListener('resize', measureName);
 function applyMotionPreference() {

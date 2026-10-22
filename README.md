@@ -16,7 +16,7 @@ Content reflects Baha Taşkın’s supplied biography, project repositories, and
 
 The initial language uses a saved preference first, then the Europe/Istanbul browser timezone or a Turkish primary browser language, otherwise English. This is an approximate region hint, not IP geolocation. The manual language selection is stored locally when storage is available.
 
-There is no header or footer. The large centered name eases up and left on scroll, staying fixed in the corner throughout the page. The movement follows scrolling in either direction with time-based damping. Reduced-motion users get direct scroll-linked movement without trailing, entrance, or ambient animation. The language switch is the only control in the top right.
+There is no header or footer. The large centered name eases up and left on scroll, staying fixed in the corner throughout the page. Scrolling down triggers a complete transition into the corner, even if scrolling stops. Returning to the top brings the name back. Reduced-motion users get a shorter transition without entrance or ambient animation. The language switch is the only control in the top right.
 
 On wide screens the content has a separate column to the right of the pinned name. On narrower screens a subtle background fade protects the name as content scrolls beneath it.
 
